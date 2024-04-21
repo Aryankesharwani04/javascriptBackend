@@ -1,0 +1,14 @@
+*.env
+.env.env.
+.env.*
+
+/.vscocde
+/node_modules
+/public/build
+/coverage
+/.vscode-test
+/.github
+!/LICENSE*
+!.prettierrc
+!jest.config.js
+!package*.json
