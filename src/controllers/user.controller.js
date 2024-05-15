@@ -4,6 +4,7 @@ import {User} from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from  'jsonwebtoken'
+import { mongoose } from "mongoose";
 
 
 
@@ -81,9 +82,11 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req,res) => {
     const {email,username,password} = req.body;
+
     if(!email && !username){
         throw new ApiError(400,"username or email is required");
     }
+    
     const user = await User.findOne({
         $or: [{email}, {username}],
     });
@@ -130,8 +133,8 @@ const logoutUser = asyncHandler(async (req,res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken: undefined
+            $unset:{
+                refreshToken: 1
             }
         },
         {
@@ -300,13 +303,28 @@ const updateUserCoverImage = asyncHandler(async(req,res) => {
 
 })
 
+
+
+//step 19--> calculating subscribers and subscribedTo for a user and a channel and adding new fields to the user database and also to a creator user of channel of subscriber 
 const getUserChannelProfile = asyncHandler(async(req, res) => {
+    //to get user we want user link from req.params
     const {username} = req.params;
     
     if(!username?.trim()){
         throw new ApiError(400, "username invalid");
     }
-
+    /**doing pipeline in database where
+    match pipeline matches all the username from the database
+ important => in lookup the model section will always written in lowercase and in plural
+    lookup will lookup for the documents we matchup
+    lookup will take from refrence of the model 
+    local field will be what user identification
+    while foreign field will be data set user is a subscriber to which channel or for channel who all are the subscribers
+    as will take any name
+    add field will add the additional field in the data base
+    is subscribed is for subscribed or not we put bool values 
+    project is used to give only imp things
+    **/
     const channel = await User.aggregate(
         {
             $match :{
@@ -358,11 +376,11 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
             }
         }
     )
-
+    //channel is an array of multiple values
     if(!channel?.length){
         throw new ApiError(404, "channel does not exist")
     }
-
+    // we get only channel one value so returning only first value
     return res
     .status(200)
     .json(
@@ -370,6 +388,77 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
     )
 })
 
+
+/**Step 20
+To calculate watch history of the user of watching videos
+and to get Id 
+Mongoose automatically convert the Id given to it into mongodb Id.
+But in using aggregation pipeline it directly contact with mongodb so there is no involvement of mongoose.
+So we have to convert it by creating new mongoose objectId.
+
+by using aggregation pipeline
+1 go to user
+2 take watchHistory
+3 find the documents of videos watched
+4 use subpipeline to again go back to users using owner field
+5 after lookup send only useful values using project
+6 add owner field as first value contain information}**/
+
+const getWatchHistory = asyncHandler(async(req, res) => {
+    const user = await User.aggregate(
+        [
+            {
+                $match:{
+                    _id : new mongoose.Types.ObjectId(req.user._id)
+                }
+            },
+            {
+                $lookup:{
+                    from : "videos",
+                    localField : "watchHistory",
+                    foreignField: "_id",
+                    as: "watchHistory",
+                    pipeline:[
+                        {
+                            $lookup:{
+                                from: "users",
+                                localField: "owner",
+                                foreignField: "_id",
+                                as: "owner",
+                                pipeline: [
+                                    {
+                                        $project:{
+                                            fullname: 1, 
+                                            username: 1, 
+                                            avatar: 1
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            $addFields:{
+                                owner:{
+                                    "$first":"$owner"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    )
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user[0].watchHistory,
+            "Watch History fetched successfully"
+        )
+    )
+})
 
 export {
     registerUser,
@@ -382,4 +471,5 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
+    getWatchHistory,
 };

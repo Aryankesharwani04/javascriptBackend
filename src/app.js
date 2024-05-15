@@ -3,7 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 const app = express()
-
+//to avoid cors stoping us to access the database we will change it credentials
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
     credentials: true

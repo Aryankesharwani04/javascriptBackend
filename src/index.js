@@ -1,4 +1,5 @@
 // require('dotenv').config({path: './env'})
+// to use dotenv as import statement we are using nodemon configuration in package.json file
 import {app} from "./app.js"
 import dotenv from "dotenv";
 
@@ -6,6 +7,7 @@ import dotenv from "dotenv";
 dotenv.config({
     path: './.env'
 })
+
 import connectDB from "./db/index.js";
 
 
@@ -15,7 +17,7 @@ connectDB()
         console.log("ERROR OCCURED", err);
         throw err;
     })
-    app.listen(process.env.PORT || 3000, () => {
+    app.listen(process.env.PORT || 2000, () => {
         console.log(`Database connected at port ${process.env.port}`);
     })
 })
