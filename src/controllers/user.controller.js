@@ -210,7 +210,7 @@ const changeCurrentPassword = asyncHandler(async (req,res,) => {
     if(!isPasswordCorrect)
         throw new ApiError(400, "Invalid old password")
 
-    user.password = newpassword;
+    user.password = newPassword;
 
     await user.save({validateBeforeSave: false})
     return res
@@ -234,7 +234,7 @@ const updateAccountDetail = asyncHandler(async(req,res) => {
         req.user?._id,
         {
             $set:{
-                fullName : fullname||req.user.fullName,  
+                fullname : fullname||req.user.fullname,  
                 email : email||req.user.email, 
             }
         },
@@ -325,7 +325,7 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
     is subscribed is for subscribed or not we put bool values 
     project is used to give only imp things
     **/
-    const channel = await User.aggregate(
+    const channel = await User.aggregate([
         {
             $match :{
                 username: username?.toLowerCase(),
@@ -338,7 +338,9 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
                 foreignField: "channel",
                 as: "subscribers"
 
-            },
+            }
+        },
+        {
             $lookup: {
                 from: "subscriptions",
                 localField: "_id",
@@ -347,7 +349,7 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
             }
         },
         {
-            $addField:{
+            $addFields:{
                 subscribersCount:{
                     $size: "$subscribers"
                 },
@@ -375,7 +377,7 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
                 coverImage: 1,
             }
         }
-    )
+    ])
     //channel is an array of multiple values
     if(!channel?.length){
         throw new ApiError(404, "channel does not exist")
@@ -459,6 +461,7 @@ const getWatchHistory = asyncHandler(async(req, res) => {
         )
     )
 })
+
 
 export {
     registerUser,
