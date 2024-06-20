@@ -14,7 +14,7 @@ const generateAccessTokenAndRefreshToken = async(userId) =>{
         const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
         user.refreshToken = refreshToken;
-        user.save({valodateBeforeSave: false});
+        user.save({validateBeforeSave: false});
         return {accessToken, refreshToken};
     } catch (error) {
         throw new ApiError(500, "Something went wrong while generating access and refresh token");
@@ -124,10 +124,7 @@ const loginUser = asyncHandler(async (req,res) => {
 
 })
 
-//     //req.body
-//     //check email or username and password
-//     //give access token
-//     //send via cookies
+
 
 const logoutUser = asyncHandler(async (req,res) => {
     await User.findByIdAndUpdate(
